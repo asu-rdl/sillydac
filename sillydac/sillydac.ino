@@ -29,24 +29,28 @@ int connect_i2c_bus(uint8_t address)
   return Wire.endTransmission();
 }
 
-int setLSBExpander(uint16_t pinsetting)
+int setLSBExpander(uint32_t pinsetting)
 {
+  //cut to lower bits
+  pinsetting = pinsetting & 0x3FF;
   Wire.beginTransmission(__IO_EXPANDER_0_I2C_ADDR);
   Wire.write((uint8_t)(pinsetting & 0xFF));
-  Wire.write((uint8_t)((pinsetting >> 8) & 0xFF));
+  Wire.write((uint8_t)((pinsetting >> 8)));
   return Wire.endTransmission();
 }
-int setMSBExpander(uint16_t pinsetting)
+int setMSBExpander(uint32_t pinsetting)
 {
+  //bring the higher level bits down to base.
+  pinsetting = pinsetting >> 10;
   Wire.beginTransmission(__IO_EXPANDER_1_I2C_ADDR);
   Wire.write((uint8_t)(pinsetting & 0xFF));
-  Wire.write((uint8_t)((pinsetting >> 8) & 0xFF));
+  Wire.write((uint8_t)((pinsetting >> 8)));
   return Wire.endTransmission();
 }
 
 int set_expander(uint32_t setting){
-  setLSBExpander(setting & 0xffff);
-  setMSBExpander((setting >> 16) & 0xffff);
+  setLSBExpander(setting);
+  setMSBExpander(setting);
   return 0;  
 }
 
@@ -71,9 +75,12 @@ void setup() {
 
 void loop() {
   // Print out the control menu
-  int option;
-  int value1, value2;
-  uint32_t confused = expander_val;
+  long int option;
+  long int value1, value2;
+
+  // Serial.println(sizeof(int));
+  // Serial.println(sizeof(long int));
+  // uint32_t confused = expander_val;
   Serial.println("CUSTOM POT TEST CODE\n");
   for (size_t i = 0; i < menuLength; i++){
     Serial.print(i);
@@ -98,26 +105,25 @@ void loop() {
       value2 = Serial.parseInt();
       clearSerBuf();
       Serial.println(String(value2) + "\n\n");
+
+      if (value1 > 0x3ff){}
       
-
       if (value2){
-        confused = confused | (1 << value1);
+        expander_val = expander_val | (1 << value1);
       } else {
-        confused = confused & (~(1 << value1));
+        expander_val = expander_val & (~(1 << value1));
       }
-      set_expander(confused);
-      Serial.println("DEBUG: " + String(confused, BIN));
-      expander_val = confused;
-
+      set_expander(expander_val);
       break;
     case 1:
       Serial.print("Decimal Value? >>> ");
       waitForSerial();
       value1 = Serial.parseInt();
       clearSerBuf();
-      set_expander(value1);
       expander_val = value1;
-      Serial.println(String(expander_val) + "\n\n");
+      set_expander(expander_val);
+      Serial.println(String(value1) + "\n\n");
+
 
       break;
     default:
