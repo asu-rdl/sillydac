@@ -45,7 +45,8 @@ int setMSBExpander(uint16_t pinsetting)
 }
 
 int set_expander(uint32_t setting){
-  
+  setLSBExpander(setting & 0xffff);
+  setMSBExpander((setting >> 16) & 0xff);
   return 0;  
 }
 
@@ -82,18 +83,36 @@ void loop() {
   clearSerBuf();
 
   switch(option){
-    case 0:
+    case 0: // Set individual pin
       Serial.println("Pin Number? >>>");
       waitForSerial();
       value1 = Serial.parseInt();
       clearSerBuf();
+      
       Serial.println("Pin State? >>>");
-
       waitForSerial();
       value2 = Serial.parseInt();
       clearSerBuf();
-      
+
+      if (value2){
+        expander_val = expander_val | (1 << value1);
+      } else {
+        expander_val = expander_val & (~(1 << value1));
+      }
+      set_expander(expander_val);
+
       break;
+    case 1:
+      Serial.println("Decimal Value? >>>");
+      waitForSerial();
+      value1 = Serial.parseInt();
+      clearSerBuf();
+      set_expander(value1);
+      expander_val = value1;
+
+      break;
+    default:
+      return;
   }
 
 
